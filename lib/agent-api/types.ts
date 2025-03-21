@@ -47,17 +47,10 @@ export interface CortexSearchTool {
     }
 }
 
-export interface SqlExecTool {
+export interface Data2AnalyticsTool {
     "tool_spec": {
-        "type": "sql_exec",
+        "type": "cortex_analyst_sql_exec",
         "name": "sql_exec"
-    }
-}
-
-export interface DataToChartTool {
-    "tool_spec": {
-        "type": "data_to_chart",
-        "name": "data_to_chart"
     }
 }
 
@@ -74,12 +67,6 @@ export interface CortexSearchToolResource {
     }
 }
 
-export interface SqlExecToolResource {
-    "sql_exec": {
-        "warehouse": string;
-    }
-}
-
 export interface AgentRequestParams {
     model: string,
     experimental: {
@@ -87,8 +74,8 @@ export interface AgentRequestParams {
         EnableRelatedQueries?: boolean;
     },
     messages: AgentMessage[],
-    tools: (CortexAnalystTool | CortexSearchTool | SqlExecTool | DataToChartTool)[],
-    tool_resources: (CortexAnalystToolResource | CortexSearchToolResource | SqlExecToolResource)[],
+    tools: (CortexAnalystTool | CortexSearchTool | Data2AnalyticsTool)[],
+    tool_resources: (CortexAnalystToolResource | CortexSearchToolResource)[],
 }
 
 export interface Data2AnalyticsObject {

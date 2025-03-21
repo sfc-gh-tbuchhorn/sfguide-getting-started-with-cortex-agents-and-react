@@ -13,17 +13,10 @@ export const CORTEX_SEARCH_TOOL = {
     }
 } as const;
 
-export const SQL_EXEC_TOOL = {
+export const DATA_2_ANALYTICS_TOOL = {
     "tool_spec": {
-        "type": "sql_exec",
+        "type": "cortex_analyst_sql_exec",
         "name": "sql_exec"
-    }
-} as const;
-
-export const DATA_TO_CHART_TOOL = {
-    "tool_spec": {
-        "type": "data_to_chart",
-        "name": "data_to_chart"
     }
 } as const;
 
