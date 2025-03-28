@@ -74,12 +74,6 @@ export interface CortexSearchToolResource {
     }
 }
 
-export interface SqlExecToolResource {
-    "sql_exec": {
-        "warehouse": string;
-    }
-}
-
 export interface AgentRequestParams {
     model: string,
     experimental: {
@@ -88,7 +82,7 @@ export interface AgentRequestParams {
     },
     messages: AgentMessage[],
     tools: (CortexAnalystTool | CortexSearchTool | SqlExecTool | DataToChartTool)[],
-    tool_resources: (CortexAnalystToolResource | CortexSearchToolResource | SqlExecToolResource)[],
+    tool_resources: (CortexAnalystToolResource | CortexSearchToolResource)[],
 }
 
 export interface Data2AnalyticsObject {

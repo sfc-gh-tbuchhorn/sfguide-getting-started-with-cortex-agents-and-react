@@ -17,7 +17,7 @@ export default function Home() {
     SQL_EXEC_TOOL,
   ]
 
-  if (process.env.NEXT_PUBLIC_DATA_TO_CHART_ENABLED === "true") {
+  if (process.env.NEXT_PUBLIC_USE_DATA_TO_CHART === "true") {
     tools.push(DATA_TO_CHART_TOOL)
   }
 
@@ -31,7 +31,6 @@ export default function Home() {
     toolResources: {
       "analyst1": { "semantic_model_file": process.env.NEXT_PUBLIC_SEMANTIC_MODEL_PATH },
       "search1": { "name": process.env.NEXT_PUBLIC_SEARCH_SERVICE_PATH, max_results: 10 },
-      "sql_exec": { "warehouse": process.env.NEXT_PUBLIC_SNOWFLAKE_WAREHOUSE ?? "" },
     }
   })
 

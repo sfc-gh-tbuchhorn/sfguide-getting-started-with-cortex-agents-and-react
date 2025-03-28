@@ -117,10 +117,7 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
                         setAgentState(AgentApiState.EXECUTING_SQL);
                         const tableResponse = await fetch(`${snowflakeUrl}/api/v2/statements`, {
                             method: 'POST',
-                            body: JSON.stringify({
-                                statement,
-                                warehouse: process.env.NEXT_PUBLIC_SNOWFLAKE_WAREHOUSE ?? "",
-                            }),
+                            body: JSON.stringify({ statement }),
                             headers: {
                                 "Content-Type": "application/json",
                                 "Accept": "application/json",
