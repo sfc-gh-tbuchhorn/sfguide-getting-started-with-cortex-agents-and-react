@@ -3,11 +3,11 @@ import { Markdown } from "./markdown";
 
 export interface ChatTableComponentProps {
     tableMarkdown: string;
-    open: boolean;
+    toolResult: boolean;
 }
 
 export function ChatTableComponent(props: ChatTableComponentProps) {
-    const { tableMarkdown, open } = props;
+    const { tableMarkdown, toolResult } = props;
 
     return (
         <motion.div
@@ -15,10 +15,14 @@ export function ChatTableComponent(props: ChatTableComponentProps) {
             initial={{ y: 5, opacity: 0 }}
             animate={{ y: 0, opacity: 1, transition: { delay: 0 } }}
         >
-            <details open={open}>
-                <summary>View result table</summary>
+            {toolResult ? (
+                <details open={false}>
+                    <summary>View result table</summary>
+                    <Markdown>{tableMarkdown}</Markdown>
+                </details>
+            ) : (
                 <Markdown>{tableMarkdown}</Markdown>
-            </details>
+            )}
         </motion.div>
     )
 }

@@ -9,9 +9,11 @@ import { getEmptyAssistantMessage } from "./functions/assistant/getEmptyAssistan
 import { appendAssistantMessageToMessagesList } from "./functions/assistant/appendAssistantMessageToMessagesList";
 import { appendToolResponseToAssistantMessage } from "./functions/assistant/appendToolResponseToAssistantMessage";
 import { toast } from "sonner";
+import { appendFetchedTableToAssistantMessage } from "./functions/assistant/appendFetchedTableToAssistantMessage";
 import { appendTableToAssistantMessage } from "./functions/assistant/appendTableToAssistantMessage";
+import { appendChartToAssistantMessage } from "./functions/assistant/appendChartToAssistantMessage";
 import { getStandardData2AnalyticsPayload } from "./functions/chat/getStandardData2AnalyticsPayload";
-import { removeSqlTableFromMessages } from "./functions/chat/removeSQLTableFromMessages";
+import { removeFetchedTableFromMessages } from "./functions/chat/removeFetchedTableFromMessages";
 import shortUUID from "short-uuid";
 
 export interface AgentApiQueryParams extends Omit<AgentRequestBuildParams, "messages" | "input"> {
@@ -61,7 +63,7 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
 
         const { headers, body } = buildStandardRequestParams({
             authToken,
-            messages: removeSqlTableFromMessages(newMessages),
+            messages: removeFetchedTableFromMessages(newMessages),
             input,
             ...agentRequestParams,
         });
@@ -134,7 +136,7 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
                             return;
                         }
 
-                        appendTableToAssistantMessage(newAssistantMessage, tableData);
+                        appendFetchedTableToAssistantMessage(newAssistantMessage, tableData, true);
                         setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
 
                         // run data2answer
@@ -177,7 +179,19 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
                                 if ('text' in content) {
                                     appendTextToAssistantMessage(newAssistantMessage, content.text);
                                     setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
-                                } else {
+                                } else if ('chart' in content) {
+                                    appendChartToAssistantMessage(newAssistantMessage, content.chart);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
+                                } else if ('table' in content) {
+                                    appendTableToAssistantMessage(newAssistantMessage, content.table);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
+                                    // When table type is returned, it means the table should be visualized.
+                                    // In future, "table" type will contain "data" field enabling to render the table directly.
+                                    // For now, we reuse the previously fetched data.
+                                    appendFetchedTableToAssistantMessage(newAssistantMessage, tableData, false);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
+                                }
+                                else {
                                     const tool_results = (content as AgentMessageToolResultsContent).tool_results;
 
                                     if (tool_results) {

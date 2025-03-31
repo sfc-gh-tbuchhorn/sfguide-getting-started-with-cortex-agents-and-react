@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo } from 'react';
-import { AgentApiState, AgentMessage, AgentMessageRole, AgentMessageTextContent, AgentMessageToolResultsContent, AgentMessageToolUseContent, Citation, CortexSearchCitationSource, RELATED_QUERIES_REGEX, RelatedQuery } from '@/lib/agent-api';
+import { AgentApiState, AgentMessage, AgentMessageRole, AgentMessageChartContent, AgentMessageFetchedTableContent, AgentMessageTextContent, AgentMessageToolResultsContent, AgentMessageToolUseContent, Citation, CortexSearchCitationSource, RELATED_QUERIES_REGEX, RelatedQuery } from '@/lib/agent-api';
 import equal from 'fast-deep-equal';
 import { prettifyChartSpec } from '@/lib/agent-api/functions/chat/prettifyChartSpec';
 import { ChatTextComponent } from './chat-text-component';
@@ -69,12 +69,6 @@ const PurePreviewMessage = ({
                 })))
             }
 
-            // if chart response
-            if ("$schema" in toolResultsContent) {
-                const chartSpec = prettifyChartSpec(toolResultsContent);
-                agentResponses.push(<ChatChartComponent key={JSON.stringify(chartSpec)} chartSpec={chartSpec} />);
-            }
-
             // if analyst text response
             if ("text" in toolResultsContent) {
                 const { text } = toolResultsContent;
@@ -88,9 +82,14 @@ const PurePreviewMessage = ({
             }
 
             // if execute sql response
-        } else if (content.type === "sql_table") {
-            const { text: tableMarkdown } = (content as AgentMessageTextContent);
-            agentResponses.push(<ChatTableComponent key={tableMarkdown} tableMarkdown={tableMarkdown} open={false} />);
+        } else if (content.type === "fetched_table") {
+            const tableContent = (content as AgentMessageFetchedTableContent);
+            agentResponses.push(<ChatTableComponent key={`${tableContent.tableMarkdown}-${tableContent.toolResult}`} tableMarkdown={tableContent.tableMarkdown} toolResult={tableContent.toolResult} />);
+        } else if (content.type === "chart") {
+            const chart_content = (content as AgentMessageChartContent);
+            const chartSpec = prettifyChartSpec(JSON.parse(chart_content.chart.chart_spec));
+            agentResponses.push(<ChatChartComponent key={JSON.stringify(chartSpec)} chartSpec={chartSpec} />);
+            
         }
     })
 

@@ -27,10 +27,30 @@ export interface AgentMessageToolResultsContent {
     }
 }
 
+export interface AgentMessageChartContent {
+    type: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chart: any;
+}
+
+export interface AgentMessageTableContent {
+    type: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    table: any;
+}
+
+export interface AgentMessageFetchedTableContent {
+    type: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tableMarkdown: string;
+    toolResult: boolean;
+}
+
+
 export interface AgentMessage {
     id: string;
     role: AgentMessageRole;
-    content: (AgentMessageTextContent | AgentMessageToolUseContent | AgentMessageToolResultsContent)[];
+    content: (AgentMessageTextContent | AgentMessageToolUseContent | AgentMessageToolResultsContent | AgentMessageChartContent | AgentMessageTableContent | AgentMessageFetchedTableContent)[];
 }
 
 export interface CortexAnalystTool {

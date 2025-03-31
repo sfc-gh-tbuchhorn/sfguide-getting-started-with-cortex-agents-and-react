@@ -26,6 +26,9 @@ export default function Home() {
     snowflakeUrl: process.env.NEXT_PUBLIC_SNOWFLAKE_URL!,
     experimental: {
       EnableRelatedQueries: true,
+      UseLegacyAnswersToolNames: false,
+      ChartToolRequired: true,
+      EnableChartAndTableContent: true,
     },
     tools,
     toolResources: {
