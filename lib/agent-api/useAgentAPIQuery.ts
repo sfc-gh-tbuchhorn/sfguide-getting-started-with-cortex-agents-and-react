@@ -6,8 +6,10 @@ import { AgentMessage, AgentMessageRole, AgentMessageToolResultsContent, AgentMe
 import { AgentRequestBuildParams, buildStandardRequestParams } from "./functions/buildStandardRequestParams";
 import { appendTextToAssistantMessage } from "./functions/assistant/appendTextToAssistantMessage";
 import { getEmptyAssistantMessage } from "./functions/assistant/getEmptyAssistantMessage";
+import { getSQLExecUserMessage } from "./functions/assistant/getSQLExecUserMessage";
 import { appendAssistantMessageToMessagesList } from "./functions/assistant/appendAssistantMessageToMessagesList";
 import { appendToolResponseToAssistantMessage } from "./functions/assistant/appendToolResponseToAssistantMessage";
+import { appendUserMessageToMessagesList } from "./functions/assistant/appendUserMessageToMessagesList";
 import { toast } from "sonner";
 import { appendFetchedTableToAssistantMessage } from "./functions/assistant/appendFetchedTableToAssistantMessage";
 import { appendTableToAssistantMessage } from "./functions/assistant/appendTableToAssistantMessage";
@@ -140,15 +142,17 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
                         setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
 
                         // run data2answer
-                        setAgentState(AgentApiState.RUNNING_ANALYTICS);
-                        const analystTextResponse = toolResultsResponse.tool_results.content[0]?.json?.text;
-                        const queryId = tableData.statementHandle;
+                        const latestUserMessageId = shortUUID.generate();
+                        setLatestMessageId(latestUserMessageId);
+                        const sqlExecUserMessage = getSQLExecUserMessage(latestUserMessageId, tableData.statementHandle)
                         const { headers, body } = buildStandardRequestParams({
                             authToken,
-                            messages: getStandardData2AnalyticsPayload(toolResources, input, statement, analystTextResponse, queryId) as AgentMessage[],
+                            messages: removeFetchedTableFromMessages([...newMessages, newAssistantMessage, sqlExecUserMessage]),
+                            input,
                             ...agentRequestParams,
                         });
-
+                        setMessages(appendUserMessageToMessagesList(sqlExecUserMessage));
+                        setAgentState(AgentApiState.RUNNING_ANALYTICS);
                         const data2AnalyticsResponse = await fetch(`${snowflakeUrl}/api/v2/cortex/agent:run`, {
                             method: 'POST',
                             headers,
@@ -157,6 +161,9 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
 
                         const data2AnalyticsStreamEvents = events(data2AnalyticsResponse);
 
+                        const latestAssistantD2AMessageId = shortUUID.generate();
+                        setLatestMessageId(latestAssistantD2AMessageId);
+                        const newAssistantD2AMessage = getEmptyAssistantMessage(latestAssistantD2AMessageId);
                         for await (const event of data2AnalyticsStreamEvents) {
                             if (event.data === "[DONE]") {
                                 setAgentState(AgentApiState.IDLE);
@@ -177,26 +184,25 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
 
                             data2Contents.forEach((content: AgentMessage['content'][number]) => {
                                 if ('text' in content) {
-                                    appendTextToAssistantMessage(newAssistantMessage, content.text);
-                                    setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
+                                    appendTextToAssistantMessage(newAssistantD2AMessage, content.text);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
                                 } else if ('chart' in content) {
-                                    appendChartToAssistantMessage(newAssistantMessage, content.chart);
-                                    setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
+                                    appendChartToAssistantMessage(newAssistantD2AMessage, content.chart);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
                                 } else if ('table' in content) {
-                                    appendTableToAssistantMessage(newAssistantMessage, content.table);
-                                    setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
+                                    appendTableToAssistantMessage(newAssistantD2AMessage, content.table);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
                                     // When table type is returned, it means the table should be visualized.
                                     // In future, "table" type will contain "data" field enabling to render the table directly.
                                     // For now, we reuse the previously fetched data.
-                                    appendFetchedTableToAssistantMessage(newAssistantMessage, tableData, false);
-                                    setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
+                                    appendFetchedTableToAssistantMessage(newAssistantD2AMessage, tableData, false);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
                                 }
                                 else {
                                     const tool_results = (content as AgentMessageToolResultsContent).tool_results;
-
                                     if (tool_results) {
-                                        appendToolResponseToAssistantMessage(newAssistantMessage, content);
-                                        setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
+                                        appendToolResponseToAssistantMessage(newAssistantD2AMessage, content);
+                                        setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
                                     }
                                 }
                             })
