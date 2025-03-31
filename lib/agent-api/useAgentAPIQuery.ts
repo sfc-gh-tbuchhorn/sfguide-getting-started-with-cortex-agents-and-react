@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { appendFetchedTableToAssistantMessage } from "./functions/assistant/appendFetchedTableToAssistantMessage";
 import { appendTableToAssistantMessage } from "./functions/assistant/appendTableToAssistantMessage";
 import { appendChartToAssistantMessage } from "./functions/assistant/appendChartToAssistantMessage";
-import { getStandardData2AnalyticsPayload } from "./functions/chat/getStandardData2AnalyticsPayload";
 import { removeFetchedTableFromMessages } from "./functions/chat/removeFetchedTableFromMessages";
 import shortUUID from "short-uuid";
 
@@ -121,7 +120,19 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
                         setAgentState(AgentApiState.EXECUTING_SQL);
                         const tableResponse = await fetch(`${snowflakeUrl}/api/v2/statements`, {
                             method: 'POST',
-                            body: JSON.stringify({ statement }),
+                            body: JSON.stringify({
+                                "statement": statement,
+                                "parameters": {
+                                    "BINARY_OUTPUT_FORMAT": "HEX",
+                                    "DATE_OUTPUT_FORMAT": "YYYY-Mon-DD",
+                                    "TIME_OUTPUT_FORMAT": "HH24:MI:SS",
+                                    "TIMESTAMP_LTZ_OUTPUT_FORMAT": "",
+                                    "TIMESTAMP_NTZ_OUTPUT_FORMAT": "YYYY-MM-DD HH24:MI:SS.FF3",
+                                    "TIMESTAMP_TZ_OUTPUT_FORMAT": "",
+                                    "TIMESTAMP_OUTPUT_FORMAT": "YYYY-MM-DD HH24:MI:SS.FF3 TZHTZM",
+                                    "TIMEZONE": "America/Los_Angeles",
+                                }
+                            }),
                             headers: {
                                 "Content-Type": "application/json",
                                 "Accept": "application/json",
