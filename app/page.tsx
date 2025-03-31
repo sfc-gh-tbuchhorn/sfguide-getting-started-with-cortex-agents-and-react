@@ -14,8 +14,8 @@ export default function Home() {
   const tools: AgentRequestBuildParams['tools'] = [
     CORTEX_SEARCH_TOOL,
     CORTEX_ANALYST_TOOL,
-    SQL_EXEC_TOOL,
     DATA_TO_CHART_TOOL,
+    SQL_EXEC_TOOL,
   ]
 
   const { agentState, messages, latestMessageId, handleNewMessage } = useAgentAPIQuery({
@@ -23,14 +23,11 @@ export default function Home() {
     snowflakeUrl: process.env.NEXT_PUBLIC_SNOWFLAKE_URL!,
     experimental: {
       EnableRelatedQueries: true,
-      UseLegacyAnswersToolNames: false,
-      ChartToolRequired: true,
-      EnableChartAndTableContent: true,
     },
     tools,
     toolResources: {
       "analyst1": { "semantic_model_file": process.env.NEXT_PUBLIC_SEMANTIC_MODEL_PATH },
-      "search1": { "name": process.env.NEXT_PUBLIC_SEARCH_SERVICE_PATH, max_results: 10 },
+      "search1": { "name": process.env.NEXT_PUBLIC_SEARCH_SERVICE_PATH, max_results: 10 }
     }
   })
 

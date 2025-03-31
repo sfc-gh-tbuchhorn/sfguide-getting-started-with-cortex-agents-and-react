@@ -9,8 +9,6 @@ export function appendChartToAssistantMessage(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chartData: any,
 ): void {
-    // const sqlMarkdown = convertSnowflakeTableDataToMarkdown(chartData);
-
     assistantMessage.content.push({
         type: "chart",
         chart: chartData,
