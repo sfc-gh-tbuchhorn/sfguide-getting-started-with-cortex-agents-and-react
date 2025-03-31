@@ -18,11 +18,11 @@ const PurePreviewMessage = ({
     message,
     agentState,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    isLatestMessage,
+    isLatestAssistantMessage,
 }: {
     message: AgentMessage;
     agentState: AgentApiState,
-    isLatestMessage: boolean,
+    isLatestAssistantMessage: boolean,
 }) => {
     // if only the search citations are available without text
     if (
@@ -93,6 +93,9 @@ const PurePreviewMessage = ({
         }
     })
 
+    if (agentResponses.length === 0) {
+        return null;
+    }
     return (
         <AnimatePresence>
             <motion.div
@@ -112,7 +115,7 @@ const PurePreviewMessage = ({
                             <Data2AnalyticsMessage message="Executing SQL..." />
                         )}
 
-                        {role === AgentMessageRole.ASSISTANT && agentState === AgentApiState.RUNNING_ANALYTICS && (
+                        {role === AgentMessageRole.ASSISTANT && agentState === AgentApiState.RUNNING_ANALYTICS && isLatestAssistantMessage && (
                             <Data2AnalyticsMessage message="Analyzing data..." />
                         )}
 
@@ -133,7 +136,7 @@ const PurePreviewMessage = ({
 export const PreviewMessage = memo(
     PurePreviewMessage,
     (prevProps, nextProps) => {
-        if (nextProps.isLatestMessage && !equal(prevProps.agentState, nextProps.agentState)) return false;
+        if (!equal(prevProps.agentState, nextProps.agentState)) return false;
         if (!equal(prevProps.message.content, nextProps.message.content)) return false;
         return true;
     },

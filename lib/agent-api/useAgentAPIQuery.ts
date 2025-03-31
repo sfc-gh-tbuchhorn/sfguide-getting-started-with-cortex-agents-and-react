@@ -40,7 +40,7 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
 
     const [agentState, setAgentState] = React.useState<AgentApiState>(AgentApiState.IDLE);
     const [messages, setMessages] = React.useState<AgentMessage[]>([]);
-    const [latestMessageId, setLatestMessageId] = React.useState<string | null>(null);
+    const [latestAssistantMessageId, setLatestAssistantMessageId] = React.useState<string | null>(null);
 
     const handleNewMessage = React.useCallback(async (input: string) => {
         if (!authToken) {
@@ -51,8 +51,6 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
         const newMessages = structuredClone(messages);
 
         const latestUserMessageId = shortUUID.generate();
-
-        setLatestMessageId(latestUserMessageId);
 
         newMessages.push({
             id: latestUserMessageId,
@@ -76,7 +74,7 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
         );
 
         const latestAssistantMessageId = shortUUID.generate();
-        setLatestMessageId(latestAssistantMessageId);
+        setLatestAssistantMessageId(latestAssistantMessageId);
         const newAssistantMessage = getEmptyAssistantMessage(latestAssistantMessageId);
 
         const streamEvents = events(response);
@@ -154,7 +152,6 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
 
                         // run data2answer
                         const latestUserMessageId = shortUUID.generate();
-                        setLatestMessageId(latestUserMessageId);
                         const sqlExecUserMessage = getSQLExecUserMessage(latestUserMessageId, tableData.statementHandle)
                         const { headers, body } = buildStandardRequestParams({
                             authToken,
@@ -173,7 +170,6 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
                         const data2AnalyticsStreamEvents = events(data2AnalyticsResponse);
 
                         const latestAssistantD2AMessageId = shortUUID.generate();
-                        setLatestMessageId(latestAssistantD2AMessageId);
                         const newAssistantD2AMessage = getEmptyAssistantMessage(latestAssistantD2AMessageId);
                         for await (const event of data2AnalyticsStreamEvents) {
                             if (event.data === "[DONE]") {
@@ -237,6 +233,6 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
         agentState,
         messages,
         handleNewMessage,
-        latestMessageId
+        latestAssistantMessageId
     };
 }
