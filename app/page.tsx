@@ -15,11 +15,8 @@ export default function Home() {
     CORTEX_SEARCH_TOOL,
     CORTEX_ANALYST_TOOL,
     SQL_EXEC_TOOL,
+    DATA_TO_CHART_TOOL,
   ]
-
-  if (process.env.NEXT_PUBLIC_USE_DATA_TO_CHART === "true") {
-    tools.push(DATA_TO_CHART_TOOL)
-  }
 
   const { agentState, messages, latestMessageId, handleNewMessage } = useAgentAPIQuery({
     authToken: jwtToken,
