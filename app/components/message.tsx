@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo } from 'react';
-import { AgentApiState, AgentMessage, AgentMessageRole, AgentMessageTextContent, AgentMessageToolResultsContent, AgentMessageToolUseContent, Citation, CortexSearchCitationSource, RELATED_QUERIES_REGEX, RelatedQuery } from '@/lib/agent-api';
+import { AgentApiState, AgentMessage, AgentMessageRole, AgentMessageChartContent, AgentMessageFetchedTableContent, AgentMessageTextContent, AgentMessageToolResultsContent, AgentMessageToolUseContent, Citation, CortexSearchCitationSource, RELATED_QUERIES_REGEX, RelatedQuery } from '@/lib/agent-api';
 import equal from 'fast-deep-equal';
 import { prettifyChartSpec } from '@/lib/agent-api/functions/chat/prettifyChartSpec';
 import { ChatTextComponent } from './chat-text-component';
@@ -18,11 +18,11 @@ const PurePreviewMessage = ({
     message,
     agentState,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    isLatestMessage,
+    isLatestAssistantMessage,
 }: {
     message: AgentMessage;
     agentState: AgentApiState,
-    isLatestMessage: boolean,
+    isLatestAssistantMessage: boolean,
 }) => {
     // if only the search citations are available without text
     if (
@@ -69,12 +69,6 @@ const PurePreviewMessage = ({
                 })))
             }
 
-            // if chart response
-            if ("$schema" in toolResultsContent) {
-                const chartSpec = prettifyChartSpec(toolResultsContent);
-                agentResponses.push(<ChatChartComponent key={JSON.stringify(chartSpec)} chartSpec={chartSpec} />);
-            }
-
             // if analyst text response
             if ("text" in toolResultsContent) {
                 const { text } = toolResultsContent;
@@ -88,12 +82,20 @@ const PurePreviewMessage = ({
             }
 
             // if execute sql response
-        } else if (content.type === "sql_table") {
-            const { text: tableMarkdown } = (content as AgentMessageTextContent);
-            agentResponses.push(<ChatTableComponent key={tableMarkdown} tableMarkdown={tableMarkdown} open={process.env.NEXT_PUBLIC_DATA_2_ANSWER_ENABLED !== "true"} />);
+        } else if (content.type === "fetched_table") {
+            const tableContent = (content as AgentMessageFetchedTableContent);
+            agentResponses.push(<ChatTableComponent key={`${tableContent.tableMarkdown}-${tableContent.toolResult}`} tableMarkdown={tableContent.tableMarkdown} toolResult={tableContent.toolResult} />);
+        } else if (content.type === "chart") {
+            const chart_content = (content as AgentMessageChartContent);
+            const chartSpec = prettifyChartSpec(JSON.parse(chart_content.chart.chart_spec));
+            agentResponses.push(<ChatChartComponent key={JSON.stringify(chartSpec)} chartSpec={chartSpec} />);
+            
         }
     })
 
+    if (agentResponses.length === 0) {
+        return null;
+    }
     return (
         <AnimatePresence>
             <motion.div
@@ -113,7 +115,7 @@ const PurePreviewMessage = ({
                             <Data2AnalyticsMessage message="Executing SQL..." />
                         )}
 
-                        {role === AgentMessageRole.ASSISTANT && agentState === AgentApiState.RUNNING_ANALYTICS && (
+                        {role === AgentMessageRole.ASSISTANT && agentState === AgentApiState.RUNNING_ANALYTICS && isLatestAssistantMessage && (
                             <Data2AnalyticsMessage message="Analyzing data..." />
                         )}
 
@@ -134,7 +136,7 @@ const PurePreviewMessage = ({
 export const PreviewMessage = memo(
     PurePreviewMessage,
     (prevProps, nextProps) => {
-        if (nextProps.isLatestMessage && !equal(prevProps.agentState, nextProps.agentState)) return false;
+        if (!equal(prevProps.agentState, nextProps.agentState)) return false;
         if (!equal(prevProps.message.content, nextProps.message.content)) return false;
         return true;
     },

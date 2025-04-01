@@ -1,6 +1,6 @@
 "use client"
 
-import { AgentApiState, AgentRequestBuildParams, CORTEX_ANALYST_TOOL, CORTEX_SEARCH_TOOL, DATA_2_ANALYTICS_TOOL, useAgentAPIQuery } from "@/lib/agent-api";
+import { AgentApiState, AgentRequestBuildParams, CORTEX_ANALYST_TOOL, CORTEX_SEARCH_TOOL, DATA_TO_CHART_TOOL, SQL_EXEC_TOOL, useAgentAPIQuery } from "@/lib/agent-api";
 import { useAccessToken } from "@/lib/auth";
 import { Messages } from "./components/messages";
 import { ChatInput } from "./components/input";
@@ -14,13 +14,11 @@ export default function Home() {
   const tools: AgentRequestBuildParams['tools'] = [
     CORTEX_SEARCH_TOOL,
     CORTEX_ANALYST_TOOL,
+    DATA_TO_CHART_TOOL,
+    SQL_EXEC_TOOL,
   ]
 
-  if (process.env.NEXT_PUBLIC_DATA_2_ANSWER_ENABLED === "true") {
-    tools.push(DATA_2_ANALYTICS_TOOL)
-  }
-
-  const { agentState, messages, latestMessageId, handleNewMessage } = useAgentAPIQuery({
+  const { agentState, messages, latestAssistantMessageId, handleNewMessage } = useAgentAPIQuery({
     authToken: jwtToken,
     snowflakeUrl: process.env.NEXT_PUBLIC_SNOWFLAKE_URL!,
     experimental: {
@@ -41,7 +39,7 @@ export default function Home() {
         <Messages
           agentState={agentState}
           messages={messages}
-          latestMessageId={latestMessageId}
+          latestAssistantMessageId={latestAssistantMessageId}
         />
 
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
