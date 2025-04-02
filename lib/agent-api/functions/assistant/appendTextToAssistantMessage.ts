@@ -8,19 +8,28 @@ export function appendTextToAssistantMessage(
     assistantMessage: AgentMessage,
     text: string,
 ): void {
-    const contentArrLength = assistantMessage.content.length;
-    const isFirstAssistantMessage = contentArrLength === 0;
-    const isLastMessageNotText = contentArrLength > 0 && assistantMessage.content[contentArrLength - 1].type !== "text";
-
-    // create a new text message if it's a new message or the last message is not text
-    if (isFirstAssistantMessage || isLastMessageNotText) {
+    // Find the last text message in the content array
+    const lastTextIndex = findLastTextContentIndex(assistantMessage.content);
+    
+    // If there's a text message, append to it, otherwise create a new one
+    if (lastTextIndex !== -1) {
+        const lastTextContent = assistantMessage.content[lastTextIndex] as AgentMessageTextContent;
+        lastTextContent.text += text;
+    } else {
+        // No text content found, add a new one
         assistantMessage.content.push({
             type: "text",
             text: text,
         });
-    } else {
-        if (assistantMessage.content[contentArrLength - 1].type === "text") {
-            (assistantMessage.content[contentArrLength - 1] as AgentMessageTextContent).text += text;
+    }
+
+    // Helper function to find the last text content index
+    function findLastTextContentIndex(content: AgentMessage['content']): number {
+        for (let i = content.length - 1; i >= 0; i--) {
+            if (content[i].type === "text") {
+                return i;
+            }
         }
+        return -1;
     }
 }

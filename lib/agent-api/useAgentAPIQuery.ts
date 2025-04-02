@@ -6,12 +6,15 @@ import { AgentMessage, AgentMessageRole, AgentMessageToolResultsContent, AgentMe
 import { AgentRequestBuildParams, buildStandardRequestParams } from "./functions/buildStandardRequestParams";
 import { appendTextToAssistantMessage } from "./functions/assistant/appendTextToAssistantMessage";
 import { getEmptyAssistantMessage } from "./functions/assistant/getEmptyAssistantMessage";
+import { getSQLExecUserMessage } from "./functions/assistant/getSQLExecUserMessage";
 import { appendAssistantMessageToMessagesList } from "./functions/assistant/appendAssistantMessageToMessagesList";
 import { appendToolResponseToAssistantMessage } from "./functions/assistant/appendToolResponseToAssistantMessage";
+import { appendUserMessageToMessagesList } from "./functions/assistant/appendUserMessageToMessagesList";
 import { toast } from "sonner";
+import { appendFetchedTableToAssistantMessage } from "./functions/assistant/appendFetchedTableToAssistantMessage";
 import { appendTableToAssistantMessage } from "./functions/assistant/appendTableToAssistantMessage";
-import { getStandardData2AnalyticsPayload } from "./functions/chat/getStandardData2AnalyticsPayload";
-import { removeSqlTableFromMessages } from "./functions/chat/removeSQLTableFromMessages";
+import { appendChartToAssistantMessage } from "./functions/assistant/appendChartToAssistantMessage";
+import { removeFetchedTableFromMessages } from "./functions/chat/removeFetchedTableFromMessages";
 import shortUUID from "short-uuid";
 
 export interface AgentApiQueryParams extends Omit<AgentRequestBuildParams, "messages" | "input"> {
@@ -37,7 +40,7 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
 
     const [agentState, setAgentState] = React.useState<AgentApiState>(AgentApiState.IDLE);
     const [messages, setMessages] = React.useState<AgentMessage[]>([]);
-    const [latestMessageId, setLatestMessageId] = React.useState<string | null>(null);
+    const [latestAssistantMessageId, setLatestAssistantMessageId] = React.useState<string | null>(null);
 
     const handleNewMessage = React.useCallback(async (input: string) => {
         if (!authToken) {
@@ -49,8 +52,6 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
 
         const latestUserMessageId = shortUUID.generate();
 
-        setLatestMessageId(latestUserMessageId);
-
         newMessages.push({
             id: latestUserMessageId,
             role: AgentMessageRole.USER,
@@ -61,7 +62,7 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
 
         const { headers, body } = buildStandardRequestParams({
             authToken,
-            messages: removeSqlTableFromMessages(newMessages),
+            messages: removeFetchedTableFromMessages(newMessages),
             input,
             ...agentRequestParams,
         });
@@ -73,7 +74,7 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
         );
 
         const latestAssistantMessageId = shortUUID.generate();
-        setLatestMessageId(latestAssistantMessageId);
+        setLatestAssistantMessageId(latestAssistantMessageId);
         const newAssistantMessage = getEmptyAssistantMessage(latestAssistantMessageId);
 
         const streamEvents = events(response);
@@ -118,7 +119,17 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
                         const tableResponse = await fetch(`${snowflakeUrl}/api/v2/statements`, {
                             method: 'POST',
                             body: JSON.stringify({
-                                statement,
+                                "statement": statement,
+                                "parameters": {
+                                    "BINARY_OUTPUT_FORMAT": "HEX",
+                                    "DATE_OUTPUT_FORMAT": "YYYY-Mon-DD",
+                                    "TIME_OUTPUT_FORMAT": "HH24:MI:SS",
+                                    "TIMESTAMP_LTZ_OUTPUT_FORMAT": "",
+                                    "TIMESTAMP_NTZ_OUTPUT_FORMAT": "YYYY-MM-DD HH24:MI:SS.FF3",
+                                    "TIMESTAMP_TZ_OUTPUT_FORMAT": "",
+                                    "TIMESTAMP_OUTPUT_FORMAT": "YYYY-MM-DD HH24:MI:SS.FF3 TZHTZM",
+                                    "TIMEZONE": "America/Los_Angeles",
+                                }
                             }),
                             headers: {
                                 "Content-Type": "application/json",
@@ -136,60 +147,72 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
                             return;
                         }
 
-                        appendTableToAssistantMessage(newAssistantMessage, tableData);
+                        appendFetchedTableToAssistantMessage(newAssistantMessage, tableData, true);
                         setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
 
-                        // if data2answer is enabled, run data2answer tool
-                        if (process.env.NEXT_PUBLIC_DATA_2_ANSWER_ENABLED === "true") {
-                            setAgentState(AgentApiState.RUNNING_ANALYTICS);
-                            const analystTextResponse = toolResultsResponse.tool_results.content[0]?.json?.text;
-                            const queryId = tableData.statementHandle;
-                            const { headers, body } = buildStandardRequestParams({
-                                authToken,
-                                messages: getStandardData2AnalyticsPayload(toolResources, input, statement, analystTextResponse, queryId) as AgentMessage[],
-                                ...agentRequestParams,
-                            });
+                        // run data2answer
+                        const latestUserMessageId = shortUUID.generate();
+                        const sqlExecUserMessage = getSQLExecUserMessage(latestUserMessageId, tableData.statementHandle)
+                        const { headers, body } = buildStandardRequestParams({
+                            authToken,
+                            messages: removeFetchedTableFromMessages([...newMessages, newAssistantMessage, sqlExecUserMessage]),
+                            input,
+                            ...agentRequestParams,
+                        });
+                        setMessages(appendUserMessageToMessagesList(sqlExecUserMessage));
+                        setAgentState(AgentApiState.RUNNING_ANALYTICS);
+                        const data2AnalyticsResponse = await fetch(`${snowflakeUrl}/api/v2/cortex/agent:run`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify(body),
+                        })
 
-                            const data2AnalyticsResponse = await fetch(`${snowflakeUrl}/api/v2/cortex/agent:run`, {
-                                method: 'POST',
-                                headers,
-                                body: JSON.stringify(body),
-                            })
+                        const data2AnalyticsStreamEvents = events(data2AnalyticsResponse);
 
-                            const data2AnalyticsStreamEvents = events(data2AnalyticsResponse);
-
-                            for await (const event of data2AnalyticsStreamEvents) {
-                                if (event.data === "[DONE]") {
-                                    setAgentState(AgentApiState.IDLE);
-                                    return;
-                                }
-
-                                if (JSON.parse(event.data!).code) {
-                                    toast.error(JSON.parse(event.data!).message);
-                                    setAgentState(AgentApiState.IDLE);
-                                    return;
-                                }
-
-                                const {
-                                    delta: {
-                                        content: data2Contents
-                                    }
-                                } = JSON.parse(event.data!);
-
-                                data2Contents.forEach((content: AgentMessage['content'][number]) => {
-                                    if ('text' in content) {
-                                        appendTextToAssistantMessage(newAssistantMessage, content.text);
-                                        setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
-                                    } else {
-                                        const tool_results = (content as AgentMessageToolResultsContent).tool_results;
-
-                                        if (tool_results) {
-                                            appendToolResponseToAssistantMessage(newAssistantMessage, content);
-                                            setMessages(appendAssistantMessageToMessagesList(newAssistantMessage));
-                                        }
-                                    }
-                                })
+                        const latestAssistantD2AMessageId = shortUUID.generate();
+                        const newAssistantD2AMessage = getEmptyAssistantMessage(latestAssistantD2AMessageId);
+                        for await (const event of data2AnalyticsStreamEvents) {
+                            if (event.data === "[DONE]") {
+                                setAgentState(AgentApiState.IDLE);
+                                return;
                             }
+
+                            if (JSON.parse(event.data!).code) {
+                                toast.error(JSON.parse(event.data!).message);
+                                setAgentState(AgentApiState.IDLE);
+                                return;
+                            }
+
+                            const {
+                                delta: {
+                                    content: data2Contents
+                                }
+                            } = JSON.parse(event.data!);
+
+                            data2Contents.forEach((content: AgentMessage['content'][number]) => {
+                                if ('text' in content) {
+                                    appendTextToAssistantMessage(newAssistantD2AMessage, content.text);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
+                                } else if ('chart' in content) {
+                                    appendChartToAssistantMessage(newAssistantD2AMessage, content.chart);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
+                                } else if ('table' in content) {
+                                    appendTableToAssistantMessage(newAssistantD2AMessage, content.table);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
+                                    // When table type is returned, it means the table should be visualized.
+                                    // In future, "table" type will contain "data" field enabling to render the table directly.
+                                    // For now, we reuse the previously fetched data.
+                                    appendFetchedTableToAssistantMessage(newAssistantD2AMessage, tableData, false);
+                                    setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
+                                }
+                                else {
+                                    const tool_results = (content as AgentMessageToolResultsContent).tool_results;
+                                    if (tool_results) {
+                                        appendToolResponseToAssistantMessage(newAssistantD2AMessage, content);
+                                        setMessages(appendAssistantMessageToMessagesList(newAssistantD2AMessage));
+                                    }
+                                }
+                            })
                         }
                     }
                 }
@@ -210,6 +233,6 @@ export function useAgentAPIQuery(params: AgentApiQueryParams) {
         agentState,
         messages,
         handleNewMessage,
-        latestMessageId
+        latestAssistantMessageId
     };
 }
