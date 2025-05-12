@@ -63,6 +63,77 @@ app.post('/agent', async (req, res) => {
   }
     res.status(cortexRes.status);
     res.setHeader('Content-Type', 'text/event-stream');
+
+/* ---- BEGIN ROBUST SSE LOGGER ---- */
+  {
+    let buffer = '';
+  
+    cortexRes.body.on('data', chunk => {
+      buffer += chunk.toString();        // append new data
+  
+      // An SSE event ends with a blank line (\n\n)
+      const blocks = buffer.split('\n\n');
+  
+      // Keep the last (possibly incomplete) block in buffer
+      buffer = blocks.pop();
+  
+      blocks.forEach(block => {
+        const trimmed = block.trim();
+        if (!trimmed) return;                        // empty heartbeat
+  
+        // Remove leading colon (comment) or "event:" line if present
+        const noComments = trimmed
+          .split('\n')
+          .filter(l => !l.startsWith(':') && !l.startsWith('event:'))
+          .join('\n');
+  
+        // Extract payload: line that starts with "data:" or whole block
+        const payloadLine = noComments.startsWith('data:')
+          ? noComments.slice(5).trim()
+          : noComments.trim();
+  
+        if (!payloadLine) return;
+        if (payloadLine === '[DONE]') {
+          console.log('[SSE] [DONE]');
+          return;
+        }
+  
+        let evt;
+        try {
+          evt = JSON.parse(payloadLine);
+        } catch (e) {
+          console.error('[SSE] JSON parse error', e, payloadLine);
+          return;
+        }
+  
+        (evt.delta?.content || []).forEach(c => {
+          switch (c.type) {
+            case 'tool_use':
+              console.log('[SSE] tool_use →', c.tool_use?.name);
+              break;
+            case 'tool_results':
+              console.log('[SSE] tool_results →',
+                          c.tool_results?.tool_use_id ||
+                          c.tool_results?.name);
+              break;
+            case 'chart':
+              console.log('[SSE] chart');
+              break;
+            case 'table':
+              console.log('[SSE] table');
+              break;
+            case 'text':
+              console.log('[SSE] text');
+              break;
+            default:
+              console.log('[SSE] unknown', JSON.stringify(c));
+          }
+        });
+      });
+    });
+  }
+  /* ---- END ROBUST SSE LOGGER ---- */
+  
     cortexRes.body.pipe(res);
   } catch (error) {
     console.error('Proxy error (agent):', error);
