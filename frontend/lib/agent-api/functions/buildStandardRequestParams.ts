@@ -2,7 +2,6 @@
 import { AgentMessage } from "../types";
 
 export interface AgentRequestBuildParams {
-    authToken: string;
     messages: AgentMessage[];
     input?: string;
     experimental?: Record<string, unknown>;
@@ -16,7 +15,6 @@ export interface AgentRequestBuildParams {
  */
 export function buildStandardRequestParams(params: AgentRequestBuildParams) {
     const {
-        authToken,
         messages,
         experimental,
         tools,
@@ -26,12 +24,10 @@ export function buildStandardRequestParams(params: AgentRequestBuildParams) {
     const headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'X-Snowflake-Authorization-Token-Type': 'KEYPAIR_JWT',
-        'Authorization': `Bearer ${authToken}`,
     }
 
     const body = {
-        "model": "claude-3-5-sonnet",
+        "model": "llama3.1-70b",
         "experimental": experimental,
         "messages": messages,
         "tools": tools,

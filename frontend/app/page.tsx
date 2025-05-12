@@ -1,7 +1,6 @@
 "use client"
 
 import { AgentApiState, AgentRequestBuildParams, CORTEX_ANALYST_TOOL, CORTEX_SEARCH_TOOL, DATA_TO_CHART_TOOL, SQL_EXEC_TOOL, useAgentAPIQuery } from "@/lib/agent-api";
-import { useAccessToken } from "@/lib/auth";
 import { Messages } from "./components/messages";
 import { ChatInput } from "./components/input";
 import { ChatHeader } from "./components/chat-header";
@@ -9,7 +8,6 @@ import { ChatHeader } from "./components/chat-header";
 export default function Home() {
   // Agent API requires a JWT auth token. For simplicity we are using an api to fetch this,
   // but this can be easily replaced with a login layer and session management
-  const { token: jwtToken } = useAccessToken();
 
   const tools: AgentRequestBuildParams['tools'] = [
     CORTEX_SEARCH_TOOL,
@@ -19,16 +17,11 @@ export default function Home() {
   ]
 
   const { agentState, messages, latestAssistantMessageId, handleNewMessage } = useAgentAPIQuery({
-    authToken: jwtToken,
     snowflakeUrl: process.env.NEXT_PUBLIC_SNOWFLAKE_URL!,
     experimental: {
       EnableRelatedQueries: true,
     },
-    tools,
-    toolResources: {
-      "analyst1": { "semantic_model_file": process.env.NEXT_PUBLIC_SEMANTIC_MODEL_PATH },
-      "search1": { "name": process.env.NEXT_PUBLIC_SEARCH_SERVICE_PATH, max_results: 10 }
-    }
+    tools
   })
 
   return (
