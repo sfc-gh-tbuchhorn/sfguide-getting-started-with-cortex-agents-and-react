@@ -18,3 +18,5 @@ services:
       dockerfile: Dockerfile.backend
     ports:
       - "3001:3001"
+    environment:
+      - MODEL_NAME=llama3.1-70b

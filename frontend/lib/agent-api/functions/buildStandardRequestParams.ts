@@ -1,4 +1,3 @@
-
 import { AgentMessage } from "../types";
 
 export interface AgentRequestBuildParams {
@@ -27,7 +26,6 @@ export function buildStandardRequestParams(params: AgentRequestBuildParams) {
     }
 
     const body = {
-        "model": "llama3.1-70b",
         "experimental": experimental,
         "messages": messages,
         "tools": tools,

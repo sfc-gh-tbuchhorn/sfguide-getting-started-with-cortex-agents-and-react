@@ -6,7 +6,8 @@ const {
     SNOWFLAKE_HOST,          // full Snowflake host
     SEARCH_SERVICE_PATH,     // e.g. INSURANCEDB.DATA.SUPPORT_DOCS_SEARCH
     SEMANTIC_MODEL_PATH,     // e.g. @INSURANCEDB.DATA.CLAIM_STORAGE/customer_semantic_model.yaml
-    WAREHOUSE_NAME
+    WAREHOUSE_NAME,
+    MODEL_NAME              // e.g. llama3.1-70b
   } = process.env;
 
 const app = express();
@@ -17,6 +18,9 @@ function enrichBody(original) {
     const body = { ...original };
     if (!body.tool_resources) body.tool_resources = {};
   
+    // Always set model name, using environment variable or default
+    body.model = MODEL_NAME || 'llama3.1-70b';
+
     if (SEARCH_SERVICE_PATH) {
       const search1 = body.tool_resources.search1 ?? {};
       body.tool_resources.search1 = {
@@ -43,7 +47,9 @@ app.post('/agent', async (req, res) => {
 
     // 🔍 Log the request we are about to forward to Snowflake
     const bodyToSend = enrichBody(req.body);
-    console.log('[proxy] /agent → Snowflake payload:', JSON.stringify(bodyToSend, null, 2));
+    console.log('[proxy] Original request body:', JSON.stringify(req.body, null, 2));
+    console.log('[proxy] Enriched request body:', JSON.stringify(bodyToSend, null, 2));
+    console.log('[proxy] MODEL_NAME from env:', process.env.MODEL_NAME);
 
     const cortexRes = await fetch(`https://${process.env.SNOWFLAKE_HOST}/api/v2/cortex/agent:run`, {
       method: 'POST',
@@ -55,7 +61,7 @@ app.post('/agent', async (req, res) => {
       body: JSON.stringify(enrichBody(req.body)),
     });
 
-    // 🔽  New: if Snowflake returns 400/403/422 etc, log the body and forward it.
+    // 🔽  New: if Snowflake returns 400/403/422 etc, log the body and forward it.
     if (!cortexRes.ok) {
         const errText = await cortexRes.text();
         console.error('Cortex error', cortexRes.status, errText);
@@ -155,7 +161,7 @@ app.post('/statements', async (req, res) => {
         ...req.body,
         };
 
-    // 🔍 log payload we’re about to send
+    // 🔍 log payload we're about to send
     console.log('[proxy] /statements payload:', JSON.stringify(req.body, null, 2));
 
     const sqlRes = await fetch(`https://${process.env.SNOWFLAKE_HOST}/api/v2/statements`, {
