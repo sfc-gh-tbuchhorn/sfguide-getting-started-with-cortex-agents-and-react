@@ -24,4 +24,4 @@ docker buildx build --platform linux/amd64 -t {Host Name}.registry.snowflakecomp
 
 docker buildx build --platform linux/amd64 -t {Host Name}.registry.snowflakecomputing.com/insurancedb/data/cortex_react_repo/cortex_chat_backtend:latest -f backend/Dockerfile.backend backend --push
 
-3. Return to setup.sql
+3. Return to setup.sql to create the service in SPCS
