@@ -135,7 +135,7 @@ spec:
         port: 3000
         path: /
     - name: backend
-      image: /insurancedb/data/cortex_react_repo/cortex_chat_backtend:latest
+      image: /insurancedb/data/cortex_react_repo/cortex_chat_backend:latest
       env:
         SEMANTIC_MODEL_PATH: "@INSURANCEDB.DATA.CLAIM_STORAGE/customer_semantic_model.yaml"
         SEARCH_SERVICE_PATH: INSURANCEDB.DATA.SUPPORT_DOCS_SEARCH

@@ -26,6 +26,6 @@ snow spcs image-registry login
 
 docker buildx build --platform linux/amd64 -t {Host Name}.registry.snowflakecomputing.com/insurancedb/data/cortex_react_repo/cortex_chat_frontend:latest -f frontend/Dockerfile.frontend frontend --push
 
-docker buildx build --platform linux/amd64 -t {Host Name}.registry.snowflakecomputing.com/insurancedb/data/cortex_react_repo/cortex_chat_backtend:latest -f backend/Dockerfile.backend backend --push
+docker buildx build --platform linux/amd64 -t {Host Name}.registry.snowflakecomputing.com/insurancedb/data/cortex_react_repo/cortex_chat_backend:latest -f backend/Dockerfile.backend backend --push
 
 3. Return to setup.sql to create the service in SPCS
