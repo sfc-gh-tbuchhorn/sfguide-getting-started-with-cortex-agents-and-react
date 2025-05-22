@@ -1,4 +1,4 @@
-# Getting Started with Snowflake Cortex Agents API and React
+# Getting Started with Snowflake Cortex Agents API and React on Snowpark Container Services (SPCS)
 
 ## Overview
 
@@ -7,6 +7,10 @@ In this quickstart, you'll learn how to leverage Snowflake's Cortex Agents to or
 ## Step-By-Step Guide
 
 For prerequisites, environment setup, step-by-step guide and instructions, please refer to the [QuickStart Guide](https://quickstarts.snowflake.com/guide/getting_started_with_snowflake_agents_api_and_react/index.html?index=..%2F..index#0).
+
+For this version of the quickstart, we will not need to define the Parameters in step 3. When a service is deployed on SPCS, the authentication is done via a token that is accessible to the service.
+
+Similarly we do not need to follow step 4. When the service is created, an endpoint will be provisioned and that is how the service can be accessed
 
 ## Running this App from within SPCS
 

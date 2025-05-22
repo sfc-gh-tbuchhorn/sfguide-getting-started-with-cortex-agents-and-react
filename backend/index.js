@@ -56,7 +56,9 @@ app.post('/agent', async (req, res) => {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-        Accept: 'text/event-stream'
+        Accept: 'text/event-stream',
+        'User-Agent': 'SCS-Proxy/1.0',
+        'X-Snowflake-Authorization-Token-Type': 'OAUTH'
       },
       body: JSON.stringify(enrichBody(req.body)),
     });
