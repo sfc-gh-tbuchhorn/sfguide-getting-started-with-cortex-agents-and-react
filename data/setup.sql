@@ -102,6 +102,7 @@ CREATE COMPUTE POOL cortex_compute_pool
 
 -- Now the SYSADMIN role has set up these tables, we need to transer them to another role
 
+USE ROLE ACCOUNTADMIN;
 CREATE ROLE test_role;
 GRANT OWNERSHIP ON DATABASE insurancedb TO ROLE test_role COPY CURRENT GRANTS;
 GRANT OWNERSHIP ON SCHEMA insurancedb.data TO ROLE test_role COPY CURRENT GRANTS;
@@ -112,8 +113,14 @@ GRANT OWNERSHIP ON COMPUTE POOL CORTEX_COMPUTE_POOL TO ROLE test_role COPY CURRE
 GRANT BIND SERVICE ENDPOINT ON ACCOUNT TO ROLE test_role;
 GRANT USAGE ON WAREHOUSE INSURANCEWAREHOUSE TO ROLE TEST_ROLE;
 GRANT USAGE ON CORTEX SEARCH SERVICE INSURANCEDB.DATA.SUPPORT_DOCS_SEARCH TO ROLE TEST_ROLE;
+SET CUR_USER = (SELECT CURRENT_USER());
+DESC USER IDENTIFIER($CUR_USER);
+GRANT ROLE TEST_ROLE TO USER IDENTIFIER($CUR_USER);
 
 -- Now build and push the images to your image repository. Refer to the Readme for more information
+
+-- Run the command below to get the image repository_url specific to your account for snow cli
+SHOW IMAGE REPOSITORIES;
 
 -- END OF PART 1 --
 
@@ -153,7 +160,7 @@ $$
   MIN_INSTANCES = 1
   MAX_INSTANCES = 1;
 
--- To get the endpoint to connect to, run the following, and copy the "ingess_url" and paste it in your browser. It may take a few minutes:
+-- To get the endpoint to connect to, run the following, and copy the "ingress_url" and paste it in your browser. It may take a few minutes:
 SHOW ENDPOINTS IN SERVICE cortex_react_service;
 
 -- If you want to see the logs from the service, you can run the following:
